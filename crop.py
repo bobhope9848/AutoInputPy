@@ -1,7 +1,6 @@
 #https://stackoverflow.com/questions/47785918/python-pil-crop-all-images-in-a-folder
 from PIL import Image
 import os.path, sys
-
 path = "C:\\Users\\bobhope\\Documents\\youtube-dl\\Frames\\"
 dirs = os.listdir(path)
 
