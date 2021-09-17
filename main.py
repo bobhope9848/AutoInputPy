@@ -1,6 +1,8 @@
 import cv2
+import json
+import jsonpickle
 
-path = "C:\\Users\\bobhope\\Documents\\youtube-dl\\New frames\\"
+dir = "C:\\Users\\bobhope\\Documents\\youtube-dl\\New frames\\"
 
 
 # Defines structure of input object
@@ -30,6 +32,7 @@ controls = {'a': Input((12, 11)),
 def check_if_active(controls_list, frame):
     # Check which controls are active
     for ctrl, value in controls.items():
+        # Button active if pixel value is over 120. I.E closer to pure white which is active
         if frame[value.coords] > 120:
             value.ispressed = True
         else:
@@ -38,16 +41,23 @@ def check_if_active(controls_list, frame):
 
 
 # Loop through folder of frames
-for n in range(1, 41):
+for n in range(580, 39179):
+    path = dir + f"video{n}.png"
     # Cuts game+control region from 1280x720 image
-    screen = cv2.imread(path + f"video{n}.png", 0)[130:720, 220:1265]
-    img_control = cv2.imread(path + f"video{n}.png", 0)[20:117, 455:887]
+    screen = cv2.imread(path, 0)[130:720, 220:1265]
+    img_control = cv2.imread(path, 0)[20:117, 455:887]
 
     # Checks which keys were pressed in frame
     controls = check_if_active(controls, img_control)
-    print(controls['z'].ispressed)
+    for key, value in controls.items():
+        print("Key {0} is pressed: {1}".format(key, value.ispressed))
+
+    # Write active controls in frame to json file
+    #with open(dir + f"\\Control\\video{n}.json", 'w') as outfile:
+    #    json.dump(jsonpickle.encode(controls), outfile)
 
     # Grabs edges from game screen
+    screen = cv2.resize(screen, (418,236))
     screen = cv2.GaussianBlur(screen, (5, 5), 0)
     screen = cv2.Canny(screen, 103, 227)
 
