@@ -29,4 +29,5 @@ for file in range(1, 45):
 
         canny = cv2.Canny(img, l, u)
 
+
     cv2.destroyAllWindows()

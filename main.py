@@ -61,6 +61,7 @@ for n in range(580, 39179):
     screen = cv2.GaussianBlur(screen, (5, 5), 0)
     screen = cv2.Canny(screen, 103, 227)
 
+
     # Display game screen
     cv2.imshow("image", screen)
     print(f"video{n}.png")
