@@ -1,7 +1,9 @@
+import os
+
 import cv2
 import ast
 import pandas
-
+from pathlib import Path as Path
 import torch
 from torch import nn
 
@@ -23,7 +25,8 @@ from fastai.vision.learner import cnn_learner
 
 from torchvision.models import resnet34
 
-directory = "C:\\Users\\bobhope\\Documents\\youtube-dl\\New frames\\"
+input_dir = Path("/Users/bobhope/Documents/youtube-dl/New frames/")
+output_dir = input_dir / "formatted/"
 
 
 # Defines structure of input object
@@ -75,13 +78,16 @@ save_list = \
         'buttons': [],
     }
 
+#   Create output directory if doesn't exist
+frame_out = output_dir / "frames/"
+frame_out.mkdir(parents=True, exist_ok=True)
+
 # Loop through folder of frames
 for n in range(1, 23):
-    path = directory + f"video{n}.png"
+    path = str((input_dir / f"video{n}.png").resolve())
     # Cuts game+control region from 1280x720 image
     screen = cv2.imread(path, 0)[130:720, 220:1265]
     img_control = cv2.imread(path, 0)[20:117, 455:887]
-
     # Checks which keys were pressed in frame
     active_keys = []
     controls = check_if_active(controls, img_control)
@@ -92,17 +98,17 @@ for n in range(1, 23):
         # Debug
         print("Key {0} is pressed: {1}".format(key, value.ispressed))
 
-    # appends working image name and active keys found in image to list
-    save_list['filename'].append(f"video{n}")
-    save_list['buttons'].append(','.join(active_keys))
-
-    # Grabs edges from game screen
-    screen = cv2.resize(screen, (418, 236))
-    screen = cv2.GaussianBlur(screen, (5, 5), 0)
-    screen = cv2.Canny(screen, 103, 227)
-
-    # Write game screen
-    cv2.imwrite(directory + f"formatted\\frames\\video{n}.png", screen)
+    # Checks if active keys were detected
+    if not len(active_keys) == 0:
+        # appends working image name and active keys found in image to list
+        save_list['filename'].append(f"video{n}")
+        save_list['buttons'].append(','.join(active_keys))
+        # Grabs edges from game screen
+        screen = cv2.resize(screen, (418, 236))
+        screen = cv2.GaussianBlur(screen, (5, 5), 0)
+        screen = cv2.Canny(screen, 103, 227)
+        # Write game screen
+        cv2.imwrite(str((frame_out / f"video{n}.png").resolve()), screen)
 
     # Display game screen
     # cv2.imshow("image", screen)
@@ -110,44 +116,27 @@ for n in range(1, 23):
     # cv2.waitKey(0)
 
 """Controls write-out section"""
-
 # save filenames and their respective buttons in csv file
-name_of_file = directory + "formatted\\ctrl\\control_list.ctrl"
+name_of_file = (output_dir / "ctrl/control_list.ctrl").resolve()
+name_of_file.parent.mkdir(parents=True, exist_ok=True)
 # Write active controls in frame to json file
 df = pandas.DataFrame(save_list)
-with open(name_of_file, 'w') as outfile:
+with open(name_of_file, 'w+') as outfile:
     df.to_csv(outfile, index=None)
 
 """CSV read-in section"""
 
-"""
-# Read csv into Panda dataframe
-df = pandas.read_csv(name_of_file)
-# Convert dataframe to dictionary with keys set as names from "filename" column
-list_of_dicts = df.set_index("filename").T.to_dict()
-
-# Retrieves lists stuck as string
-
-# Stolen from https://www.kite.com/python/answers/how-to-loop-through-all-nested-dictionary-values-using-a-for-loop-in-python
-def get_all_values(nested_dictionary):
-    for keys, valued in nested_dictionary.items():
-        if type(valued) is dict:
-            get_all_values(valued)
-        else:
-            if valued != "[]":
-                nested_dictionary[keys] = ast.literal_eval(valued)
-get_all_values(list_of_dicts)
-"""
+# Read-in csv to panda frame then convert to dictionary with keys set as names from "filename" column
+# list_of_dicts = pandas.read_csv(name_of_file).set_index('filename').T.to_dict("list")
 
 """Model building section"""
 
 df.head()
 model = DataBlock(blocks=(ImageBlock, MultiCategoryBlock),
-                  get_x=ColReader(0, pref=directory + f"formatted\\frames\\", suff='.png'),
+                  get_x=ColReader(0, pref=f'{str((output_dir / "frames").resolve())}{os.sep}', suff='.png'),
                   splitter=RandomSplitter(),
                   get_y=ColReader(1, label_delim=','))
 
-dls = model.dataloaders(df, bs=5)
-print(dls)
-dls.show_batch()
+dls = model.dataloaders(df, bs=6)
+#dls.show_batch()
 # dls.show_batch(max_n=9, figsize=(12,9))
