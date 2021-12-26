@@ -2,6 +2,8 @@ import os
 
 import cv2
 import ast
+
+import numpy as np
 import pandas
 from pathlib import Path as Path
 import torch
@@ -25,8 +27,12 @@ from fastai.vision.learner import cnn_learner
 
 from torchvision.models import resnet34
 
-input_dir = Path("/Users/bobhope/Documents/youtube-dl/New frames/")
+from fastprogress import master_bar, progress_bar
+import glob
+#!rm -rf drive/MyDrive/New_frames/formatted
+input_dir = Path("drive/MyDrive/New_frames/")
 output_dir = input_dir / "formatted/"
+number_of_iter = 200
 
 
 # Defines structure of input object
@@ -82,9 +88,27 @@ save_list = \
 frame_out = output_dir / "frames/"
 frame_out.mkdir(parents=True, exist_ok=True)
 
+
+def auto_canny(image, sigma=0.33):
+    # compute the median of the single channel pixel intensities
+    v = np.median(image)
+    # apply automatic Canny edge detection using the computed median
+    lower = int(max(0, (1.0 - sigma) * v))
+    upper = int(min(255, (1.0 + sigma) * v))
+    edged = cv2.Canny(image, lower, upper)
+    # return the edged image
+    return edged
+
 # Loop through folder of frames
-for n in range(1, 23):
-    path = str((input_dir / f"video{n}.png").resolve())
+directory_list = sorted(list(map(os.path.basename, glob.glob(str(input_dir.resolve() / "*.png")))),key=len)
+a = 0
+for n in progress_bar(directory_list):
+
+    a += 1
+
+    if a == number_of_iter:
+        break
+    path = str((input_dir / n).resolve())
     # Cuts game+control region from 1280x720 image
     screen = cv2.imread(path, 0)[130:720, 220:1265]
     img_control = cv2.imread(path, 0)[20:117, 455:887]
@@ -96,23 +120,41 @@ for n in range(1, 23):
         if value.ispressed:
             active_keys.append(key)
         # Debug
-        print("Key {0} is pressed: {1}".format(key, value.ispressed))
+        #print("Key {0} is pressed: {1}".format(key, value.ispressed))
 
     # Checks if active keys were detected
     if not len(active_keys) == 0:
         # appends working image name and active keys found in image to list
-        save_list['filename'].append(f"video{n}")
+        save_list['filename'].append(n)
         save_list['buttons'].append(','.join(active_keys))
+        """
         # Grabs edges from game screen
-        screen = cv2.resize(screen, (418, 236))
-        screen = cv2.GaussianBlur(screen, (5, 5), 0)
-        screen = cv2.Canny(screen, 103, 227)
-        # Write game screen
-        cv2.imwrite(str((frame_out / f"video{n}.png").resolve()), screen)
+        #screen = cv2.resize(screen, (418, 236))
+
+        #screen = cv2.medianBlur(screen, 5)
+        screen = cv2.GaussianBlur(screen, (9, 9), 0)
+
+        #screen = cv2.equalizeHist(screen)
+
+        #screen = cv2.Canny(screen, 103, 227)
+        #screen = auto_canny(screen)
+        screen = cv2.Canny(screen, 100, 122)
+        #screen = cv2.equalizeHist(screen)
+        """
+    elif len(active_keys) == 0:
+        save_list['filename'].append(n)
+        save_list['buttons'].append("nothing")
+
+    # Grabs edges from game screen
+    screen = cv2.resize(screen, (418, 236))
+    screen = cv2.GaussianBlur(screen, (5, 5), 0)
+    screen = cv2.Canny(screen, 103, 227)
+    # Write game screen
+    cv2.imwrite(str((frame_out / n).resolve()), screen)
 
     # Display game screen
     # cv2.imshow("image", screen)
-    # print(f"video{n}.png")
+    # print(n)
     # cv2.waitKey(0)
 
 """Controls write-out section"""
@@ -133,10 +175,10 @@ with open(name_of_file, 'w+') as outfile:
 
 df.head()
 model = DataBlock(blocks=(ImageBlock, MultiCategoryBlock),
-                  get_x=ColReader(0, pref=f'{str((output_dir / "frames").resolve())}{os.sep}', suff='.png'),
+                  get_x=ColReader(0, pref=f'{str((output_dir / "frames").resolve())}{os.sep}'),
                   splitter=RandomSplitter(),
                   get_y=ColReader(1, label_delim=','))
 
 dls = model.dataloaders(df, bs=6)
-#dls.show_batch()
+# dls.show_batch()
 # dls.show_batch(max_n=9, figsize=(12,9))

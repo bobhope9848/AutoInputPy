@@ -8,7 +8,7 @@ def callback(x):
     print(x)
 
 
-for file in range(1, 45):
+for file in range(107, 108):
     img = cv2.imread(f'C:\\Users\\bobhope\\Documents\\youtube-dl\\New frames\\video{file}.png ', 0) #read image as grayscale
     img = cv2.GaussianBlur(img, (7,7), 0)
 
@@ -19,8 +19,8 @@ for file in range(1, 45):
     cv2.createTrackbar('U', 'image', 0, 255, callback) #upper threshold trackbar for window 'image
 
     while(1):
-        numpy_horizontal_concat = np.concatenate((img, canny), axis=1) # to display image side by side
-        cv2.imshow('image', numpy_horizontal_concat)
+        #numpy_horizontal_concat = np.concatenate((img, canny), axis=1) # to display image side by side
+        cv2.imshow('image', canny)
         k = cv2.waitKey(1) & 0xFF
         if k == 27: #escape key
             break
