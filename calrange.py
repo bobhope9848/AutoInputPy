@@ -8,7 +8,7 @@ def callback(x):
     print(x)
 
 
-for file in range(107, 108):
+for file in range(1917, 1920):
     img = cv2.imread(f'C:\\Users\\bobhope\\Documents\\youtube-dl\\New frames\\video{file}.png ', 0) #read image as grayscale
     img = cv2.GaussianBlur(img, (7,7), 0)
 
